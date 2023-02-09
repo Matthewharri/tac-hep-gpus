@@ -24,6 +24,7 @@ class Particle{
 	public:
 	Particle();
 	// FIXME : Create an additional constructor that takes 4 arguments --> the 4-momentum
+	Particle(double pT, double Eta, double Phi, double Energy);
 	double   pt, eta, phi, E, m, p[4];
 	void     p4(double, double, double, double);
 	void     print();
@@ -48,35 +49,82 @@ Particle::Particle(){
 }
 
 //*** Additional constructor ------------------------------------------------------
-Particle::Particle( ){ 
+Particle::Particle(double pT, double Eta, double Phi, double Energy ){ 
 	//FIXME
+	pt = pT;
+	eta = Eta;
+	phi = Phi;
+	E = Energy;
+	m = 0.0;
+	p[0] = p[1] = p[2] = p[3] = 0.0;
+
 }
 
 //
 //*** Members  ------------------------------------------------------
 //
 double Particle::sintheta(){
-
 	//FIXME
+	return sin(2*atan(exp(-eta)));
 }
 
 void Particle::p4(double pT, double eta, double phi, double energy){
-
 	//FIXME
+	p[0] = energy;
+	p[1] = pT*cos(phi);
+	p[2] = pT*sin(phi);
+	p[3] = pT*sinh(eta);
 
 }
 
 void Particle::setMass(double mass)
 {
 	// FIXME
+	// m = sqrt(p[0]*p[0] - p[1]*p[1] - p[2]*p[2] - p[3]*p[3]);
+	m = mass;
 }
 
 //
 //*** Prints 4-vector ----------------------------------------------------------
 //
 void Particle::print(){
-	std::cout << std::endl;
+	// std::cout << std::endl;
 	std::cout << "(" << p[0] <<",\t" << p[1] <<",\t"<< p[2] <<",\t"<< p[3] << ")" << "  " <<  sintheta() << std::endl;
+}
+
+
+class Lepton : public Particle{
+	public:
+	Lepton() : Particle(){charge = 0;};
+	Lepton(double pT, double Eta, double Phi, double Energy) : Particle(pT, Eta, Phi, Energy){
+		charge = 0;
+		this->p4(pT, Eta, Phi, Energy);
+		auto mass = p[0]*p[0] - p[1]*p[1] - p[2]*p[2] - p[3]*p[3];
+		this->setMass(sqrt(mass));
+	};
+	float charge;
+	void setCharge(float q);
+};
+
+void Lepton::setCharge(float q){
+	charge = q;
+}
+
+class Jet : public Particle{
+	public:
+	Jet() : Particle(){HadronFlavour = 1;};
+	Jet(double pT, double Eta, double Phi, double Energy) : Particle(pT, Eta, Phi, Energy){
+		HadronFlavour = 0;
+		this->p4(pT, Eta, Phi, Energy);
+		auto mass = p[0]*p[0] - p[1]*p[1] - p[2]*p[2] - p[3]*p[3];
+		this->setMass(mass);
+	}
+	float HadronFlavour;
+	void setHadronFlavour(float hf);
+};
+
+void Jet::setHadronFlavour(float hf){
+	HadronFlavour = hf;
 }
 
 int main() {
@@ -111,7 +159,22 @@ int main() {
 		std::cout<<" Event "<< jentry <<std::endl;	
 
 		//FIX ME
+		//loop through jets and leptons
+		for(auto i = 0; i < njets; i++){
+			Jet jet(jetPt[i], jetEta[i], jetPhi[i], jetE[i]);
+			jet.setHadronFlavour(jetHadronFlavour[i]);
+			std::cout << "Jet: ";
+			std::cout << "HadronFlavour: "<< jet.HadronFlavour << ", ";
+			jet.print();
+		}
 
+		for(auto i = 0; i < 2 ; i++){
+			Lepton lepton(lepPt[i], lepEta[i], lepPhi[i], lepE[i]);
+			lepton.setCharge(lepQ[i]);
+			std::cout << "Lepton: ";
+			std::cout << "Charge: "<< lepton.charge << ", ";
+			lepton.print();
+		}
 
 	} // Loop over all events
 
