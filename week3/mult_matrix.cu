@@ -38,8 +38,7 @@ __global__ void matrix_mul_gpu(const float *A, const float *B, float *C, int siz
         for (int i = 0; i < size; i++){
             //FIXME : Add dot product of row and column
         }
-        C[idy*ds+idx] = temp;                    
-        // Note: If you choose 2-d then this would be C[idy,idx]
+        C[idy*size+idx] = temp;                    
     }
 
 }
