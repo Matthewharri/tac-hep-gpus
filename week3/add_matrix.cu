@@ -50,7 +50,7 @@ int main()
     // Syntax : dim3(Nx,Ny,Nz)
     // dim3 blockSize(blockIdx.x, blockIdx.y,1); 
     // dim3 gridSize(DSIZE_X/blockSize.x,DSIZE_Y/blockSize.y,1); 
-    dim3 blockSize(16,16,1);
+    dim3 blockSize(32,32,1);
     dim3 gridSize(DSIZE_X/blockSize.x,DSIZE_Y/blockSize.y,1);
     
     add_matrix<<<gridSize, blockSize>>>(d_A, d_B, d_C);
