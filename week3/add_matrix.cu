@@ -33,7 +33,7 @@ int main()
 
     // Fill in the matrices
     // FIXME
-    for (int i = 0; i < DSIZE_X; i++) {
+    for (int i = 0; i < DSIZE_X*DSIZE_Y; i++) {
         h_A[i] = rand()/(float)RAND_MAX;
         h_B[i] = rand()/(float)RAND_MAX;
         h_C[i] = 0;
@@ -48,8 +48,6 @@ int main()
     // dim3 is a built in CUDA type that allows you to define the block 
     // size and grid size in more than 1 dimentions
     // Syntax : dim3(Nx,Ny,Nz)
-    // dim3 blockSize(blockIdx.x, blockIdx.y,1); 
-    // dim3 gridSize(DSIZE_X/blockSize.x,DSIZE_Y/blockSize.y,1); 
     dim3 blockSize(32,32,1);
     dim3 gridSize(DSIZE_X/blockSize.x,DSIZE_Y/blockSize.y,1);
     
@@ -58,7 +56,49 @@ int main()
     // Copy back to host 
     cudaMemcpy(h_C, d_C, DSIZE_X * DSIZE_Y * sizeof(float), cudaMemcpyDeviceToHost);
     // Print and check some elements to make the addition was succesfull
-    printf("h_A[0] = %f h_B[0] = %f h_C[0] = %f, h_A[1] = %f h_B[1] = %f h_C[1] = %f, h_A[96] = %f h_B[96] = %f h_C[96] = %f ", h_A[0], h_B[0], h_C[0], h_A[1], h_B[1], h_C[1], h_A[96], h_B[96], h_C[96]);
+    // First I will make the host arrays into 2D matrices
+
+    float h_A_matrix[DSIZE_X][DSIZE_Y];
+    float h_B_matrix[DSIZE_X][DSIZE_Y];
+    float h_C_matrix[DSIZE_X][DSIZE_Y];
+
+    for (int i = 0; i < DSIZE_X; i++) {
+        for (int j = 0; j < DSIZE_Y; j++) {
+            h_A_matrix[i][j] = h_A[i * DSIZE_Y + j];
+            h_B_matrix[i][j] = h_B[i * DSIZE_Y + j];
+            h_C_matrix[i][j] = h_C[i * DSIZE_Y + j];
+        }
+    }
+    // Print the first 4x4 elements of the matrices
+    printf("\n");
+    printf("Matrix A:\n");
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            printf("%f ", h_A_matrix[i][j]);
+            
+        }
+        printf("\n");
+    }
+
+    printf("\n");
+    printf("Matrix B:\n");
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            printf("%f ", h_B_matrix[i][j]);
+            
+        }
+        printf("\n");
+    }
+    printf("\n");
+    printf("Matrix C:\n");
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            printf("%f ", h_C_matrix[i][j]);
+            
+        }
+        printf("\n");
+    }
+
     // Free the memory     
 
     free(h_A);
