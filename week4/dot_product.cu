@@ -25,7 +25,11 @@ const int b = 1;
 __global__ void dot_product(const int *A, const int *B, int *C, int N) {
 
 	// FIXME
-	// Use atomicAdd	
+	// Use atomicAdd
+	int idx = blockIdx.x * blockDim.x + threadIdx.x;
+	if(idx < N){
+		atomicAdd(C, A[idx] * B[idx]);
+	}
 }
 
 
@@ -47,23 +51,43 @@ int main() {
 
 
 	// Allocate device memory 
+
+	cudaMalloc((void **) &d_A, DSIZE * sizeof(int));
+	cudaMalloc((void **) &d_B, DSIZE * sizeof(int));
+	cudaMalloc((void **) &d_C, sizeof(int));
 	
 	// Check memory allocation for errors
+	cudaCheckErrors();
 
 	// Copy the matrices on GPU
+	cudaMemcpy(d_A, h_A, DSIZE * sizeof(int), cudaMemcpyHostToDevice);
+	cudaMemcpy(d_B, h_B, DSIZE * sizeof(int), cudaMemcpyHostToDevice);
+	cudaMemcpy(d_C, h_C, sizeof(int), cudaMemcpyHostToDevice);
 	
 	// Check memory copy for errors
+	cudaCheckErrors();
 
 	// Define block/grid dimentions and launch kernel
-	
+	dim3 dimBlock(BLOCK_SIZE);
+	dim3 dimGrid(DSIZE/BLOCK_SIZE);
+	dot_product<<<dimGrid, dimBlock>>>(d_A, d_B, d_C, DSIZE);
+
 	// Copy results back to host
+	cudaMemcpy(h_C, d_C, sizeof(int), cudaMemcpyDeviceToHost);
 	
     // Check copy for errors
+	cudaCheckErrors();
 
 	// Verify result
+	printf("Result: %d\n", *h_C);
 
 	// Free allocated memory
-	
+	cudaFree(d_A);
+	cudaFree(d_B);
+	cudaFree(d_C);
+	free(h_A);
+	free(h_B);
+	free(h_C);
 	return 0;
 
 }
