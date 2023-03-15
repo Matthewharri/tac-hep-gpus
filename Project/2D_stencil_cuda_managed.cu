@@ -3,7 +3,7 @@
 
 
 #define BLOCK_SIZE 32
-#define DSIZE 1024
+#define DSIZE 512
 #define RADIUS 3
 
 __global__ void stencil_2D(int *in, int *out){
@@ -70,16 +70,15 @@ bool check_matrix_mult(int *a, int *b, int *c, int size){
     return true;
 }
 
+
 int main(void){
     int *A, *B, *C, *D, *E;
-    int *d_A, *d_B, *d_C, *d_D, *d_E;
 
-    int size = (DSIZE + 2 * RADIUS) * (DSIZE + 2 * RADIUS) * sizeof(int);
-    A = (int *)malloc(size);
-    B = (int *)malloc(size);
-    C = (int *)malloc(size);
-    D = (int *)malloc(size);
-    E = (int *)malloc(size);
+    cudaMallocManaged(&A, (DSIZE + 2 * RADIUS) * (DSIZE + 2 * RADIUS) * sizeof(int));
+    cudaMallocManaged(&B, (DSIZE + 2 * RADIUS) * (DSIZE + 2 * RADIUS) * sizeof(int));
+    cudaMallocManaged(&C, (DSIZE + 2 * RADIUS) * (DSIZE + 2 * RADIUS) * sizeof(int));
+    cudaMallocManaged(&D, (DSIZE + 2 * RADIUS) * (DSIZE + 2 * RADIUS) * sizeof(int));
+    cudaMallocManaged(&E, (DSIZE + 2 * RADIUS) * (DSIZE + 2 * RADIUS) * sizeof(int));
 
     //Fill arrays with integers
     for(int i = 0; i < (DSIZE + 2 * RADIUS) * (DSIZE + 2 * RADIUS); i++){
@@ -90,41 +89,23 @@ int main(void){
         E[i] = 0;
     }
 
-    //Allocate memory on the device for stencil operation
-    cudaMalloc((void **)&d_A, size);
-    cudaMalloc((void **)&d_B, size);
-    cudaMalloc((void **)&d_C, size);
-    cudaMalloc((void **)&d_D, size);
-    cudaMalloc((void **)&d_E, size);
-
-    // //Copy from host to device for the 2D stencil operation
-    cudaMemcpy(d_A, A, size, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_B, B, size, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_C, C, size, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_D, D, size, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_E, E, size, cudaMemcpyHostToDevice);
-
-    //Set up the execution configuration for the 2D stencil operation
+        //Set up the execution configuration for the 2D stencil operation
     int gridSize = (DSIZE + BLOCK_SIZE - 1) / BLOCK_SIZE;
     dim3 dimGrid(gridSize, gridSize);
     dim3 dimBlock(BLOCK_SIZE, BLOCK_SIZE);
 
     //Launch 2D stencil kernel for both A and B
-    stencil_2D<<<dimGrid, dimBlock>>>(d_A + RADIUS + RADIUS * (DSIZE + 2 * RADIUS), d_C + RADIUS + RADIUS * (DSIZE + 2 * RADIUS));
-    stencil_2D<<<dimGrid, dimBlock>>>(d_B + RADIUS + RADIUS * (DSIZE + 2 * RADIUS), d_D + RADIUS + RADIUS * (DSIZE + 2 * RADIUS));
-    
-    //unneeded copy back to host
-    cudaMemcpy(C, d_C, size, cudaMemcpyDeviceToHost);
-    cudaMemcpy(D, d_D, size, cudaMemcpyDeviceToHost);
+    stencil_2D<<<dimGrid, dimBlock>>>(A + RADIUS + RADIUS * (DSIZE + 2 * RADIUS), C + RADIUS + RADIUS * (DSIZE + 2 * RADIUS));
+    cudaDeviceSynchronize();
+    stencil_2D<<<dimGrid, dimBlock>>>(B + RADIUS + RADIUS * (DSIZE + 2 * RADIUS), D + RADIUS + RADIUS * (DSIZE + 2 * RADIUS));
+    cudaDeviceSynchronize();
 
+    //Set up the execution configuration for the matrix multiplication
     dim3 dimBlock2(BLOCK_SIZE, BLOCK_SIZE);
     dim3 dimGrid2((DSIZE + 2 * RADIUS), (DSIZE + 2 * RADIUS));
-    mult_square_matrix<<<dimGrid2, dimBlock2>>>(d_C, d_D, d_E, DSIZE+2*RADIUS);
+    mult_square_matrix<<<dimGrid2, dimBlock2>>>(C, D, E, DSIZE+2*RADIUS);
+    cudaDeviceSynchronize();
 
-    //copy d_E back to host
-    cudaMemcpy(E, d_E, size, cudaMemcpyDeviceToHost);
-
-    //Check if the multiplication was correct
     if(not check_matrix_mult(C,D,E,DSIZE + 2 * RADIUS)){
         printf("Matrix multiplication failed\n");
         exit(1);
@@ -159,19 +140,9 @@ int main(void){
         }
     }
 
-
-    cudaFree(d_A);
-    cudaFree(d_B);
-    cudaFree(d_C);
-    cudaFree(d_D);
-    cudaFree(d_E);
-
-    //Free host memory
-    free(A);
-    free(B);
-    free(C);
-    free(D);
-    free(E);
-
+    cudaFree(A);
+    cudaFree(B);
+    cudaFree(C);
+    cudaFree(D);
+    cudaFree(E);
 }
-
