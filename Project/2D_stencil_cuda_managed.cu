@@ -70,6 +70,28 @@ bool check_matrix_mult(int *a, int *b, int *c, int size){
     return true;
 }
 
+bool check_matrix_stencil(int *a, int *b, int size){
+    for (int i = 0; i < size; i++){
+        for (int j = 0; j < size; j++){
+            int temp = 0;
+            if (i < RADIUS || i >= size - RADIUS || j < RADIUS || j >= size - RADIUS){
+                temp = a[i*size+j];
+            }
+            else{
+                for (int k = -RADIUS; k <= RADIUS; k++){
+                    temp += a[(i+k)*size+j];
+                    temp += a[i*size+j+k];
+                }
+                temp -= a[i*size+j];
+            }
+            if (temp != b[i*size+j]){
+                printf("Error! at %d, %d. Expected %d, got %d", i, j, temp, b[i*size+j]);
+                return false;
+            }
+        }
+    }
+    return true;
+}
 
 int main(void){
     int *A, *B, *C, *D, *E;
@@ -114,30 +136,20 @@ int main(void){
         printf("Matrix multiplication Successful\n");
     }
 
-    for (int i = 0; i < DSIZE + 2 * RADIUS; ++i) {
-		for (int j = 0; j < DSIZE + 2 * RADIUS; ++j) {
+    if(not check_matrix_stencil(A,C,DSIZE + 2 * RADIUS)){
+        printf("Stencil A failed\n");
+        exit(1);
+    }
+    else{
+        printf("Stencil A Successful\n");
+    }
 
-			if (i < RADIUS || i >= DSIZE + RADIUS) {
-				if (C[j+i*(DSIZE + 2 * RADIUS)] != A[j+i*(DSIZE + 2 * RADIUS)]) {
-					printf("Mismatch at index [%d,%d] for matric C, was: %d, should be: %d\n", i,j, C[j+i*(DSIZE + 2 * RADIUS)], A[j+i*(DSIZE + 2 * RADIUS)]);
-					return -1;
-				}
-                if (D[j+i*(DSIZE + 2 * RADIUS)] != B[j+i*(DSIZE + 2 * RADIUS)]) {
-                    printf("Mismatch at index [%d,%d] for matrix D, was: %d, should be: %d\n", i,j, D[j+i*(DSIZE + 2 * RADIUS)], B[j+i*(DSIZE + 2 * RADIUS)]);
-                    return -1;
-                }
-			}
-            else if (j < RADIUS || j >= DSIZE + RADIUS) {
-                if (C[j+i*(DSIZE + 2 * RADIUS)] != A[j+i*(DSIZE + 2 * RADIUS)]) {
-                    printf("Mismatch at index [%d,%d] for matrix C, was: %d, should be: %d\n", i,j, C[j+i*(DSIZE + 2 * RADIUS)], A[j+i*(DSIZE + 2 * RADIUS)]);
-                    return -1;
-                }
-                if (D[j+i*(DSIZE + 2 * RADIUS)] != B[j+i*(DSIZE + 2 * RADIUS)]) {
-                    printf("Mismatch at index [%d,%d] for matrix D, was: %d, should be: %d\n", i,j, D[j+i*(DSIZE + 2 * RADIUS)], B[j+i*(DSIZE + 2 * RADIUS)]);
-                    return -1;
-                }
-            }
-        }
+    if(not check_matrix_stencil(B,D,DSIZE + 2 * RADIUS)){
+        printf("Stencil B failed\n");
+        exit(1);
+    }
+    else{
+        printf("Stencil B Successful\n");
     }
 
     cudaFree(A);

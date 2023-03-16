@@ -71,6 +71,29 @@ bool check_matrix_mult(int *a, int *b, int *c, int size){
     return true;
 }
 
+bool check_matrix_stencil(int *a, int *b, int size){
+    for (int i = 0; i < size; i++){
+        for (int j = 0; j < size; j++){
+            int temp = 0;
+            if (i < RADIUS || i >= size - RADIUS || j < RADIUS || j >= size - RADIUS){
+                temp = a[i*size+j];
+            }
+            else{
+                for (int k = -RADIUS; k <= RADIUS; k++){
+                    temp += a[(i+k)*size+j];
+                    temp += a[i*size+j+k];
+                }
+                temp -= a[i*size+j];
+            }
+            if (temp != b[i*size+j]){
+                printf("Error! at %d, %d. Expected %d, got %d", i, j, temp, b[i*size+j]);
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
 int main(void){
 
     const int chunks = 64;
@@ -128,21 +151,6 @@ int main(void){
         cudaMemcpyAsync(E + i * shift * shift, d_E + i * shift * shift, shift * shift * sizeof(int), cudaMemcpyDeviceToHost, stream[i % streams]);
         cudaDeviceSynchronize();
     }
-    // for(int i = 0; i < chunks; i++){
-    //     cudaMemcpyAsync(d_B + i * shift * shift, B + i * shift * shift, shift * shift * sizeof(int), cudaMemcpyHostToDevice, stream[i % streams]);
-    //     cudaMemcpyAsync(d_D + i * shift * shift, D + i * shift * shift, shift * shift * sizeof(int), cudaMemcpyHostToDevice, stream[i % streams]);
-    //     stencil_2D<<<dimGrid, dimBlock, 0, stream[i % streams]>>>(d_B + RADIUS + RADIUS * (DSIZE + 2 * RADIUS) + i * shift * shift, d_D + RADIUS + RADIUS * (DSIZE + 2 * RADIUS) + i * shift * shift);
-    //     cudaMemcpyAsync(B + i * shift * shift, d_B + i * shift * shift, shift * shift * sizeof(int), cudaMemcpyDeviceToHost, stream[i % streams]);
-    //     cudaMemcpyAsync(D + i * shift * shift, d_D + i * shift * shift, shift * shift * sizeof(int), cudaMemcpyDeviceToHost, stream[i % streams]);
-    // }
-    // cudaDeviceSynchronize();
-
-    for(int i = 0; i < chunks; i++){
-
-        mult_square_matrix<<<dimGrid2, dimBlock, 0, stream[i % streams]>>>(d_C + i * shift * shift, d_D + i * shift * shift, d_E + i * shift * shift, DSIZE + 2 * RADIUS);
-        cudaMemcpyAsync(E + i * shift * shift, d_E + i * shift * shift, shift * shift * sizeof(int), cudaMemcpyDeviceToHost, stream[i % streams]);
-    }
-    // cudaDeviceSynchronize();
 
     if(not check_matrix_mult(C,D,E,DSIZE + 2 * RADIUS)){
         printf("Matrix multiplication failed\n");
@@ -152,33 +160,19 @@ int main(void){
         printf("Matrix multiplication Successful\n");
     }
 
-    for (int i = 0; i < DSIZE + 2 * RADIUS; ++i) {
-		for (int j = 0; j < DSIZE + 2 * RADIUS; ++j) {
-
-			if (i < RADIUS || i >= DSIZE + RADIUS) {
-				if (C[j+i*(DSIZE + 2 * RADIUS)] != A[j+i*(DSIZE + 2 * RADIUS)]) {
-					printf("Mismatch at index [%d,%d] for matric C, was: %d, should be: %d\n", i,j, C[j+i*(DSIZE + 2 * RADIUS)], A[j+i*(DSIZE + 2 * RADIUS)]);
-					return -1;
-				}
-                if (D[j+i*(DSIZE + 2 * RADIUS)] != B[j+i*(DSIZE + 2 * RADIUS)]) {
-                    printf("Mismatch at index [%d,%d] for matrix D, was: %d, should be: %d\n", i,j, D[j+i*(DSIZE + 2 * RADIUS)], B[j+i*(DSIZE + 2 * RADIUS)]);
-                    return -1;
-                }
-			}
-            else if (j < RADIUS || j >= DSIZE + RADIUS) {
-                if (C[j+i*(DSIZE + 2 * RADIUS)] != A[j+i*(DSIZE + 2 * RADIUS)]) {
-                    printf("Mismatch at index [%d,%d] for matrix C, was: %d, should be: %d\n", i,j, C[j+i*(DSIZE + 2 * RADIUS)], A[j+i*(DSIZE + 2 * RADIUS)]);
-                    return -1;
-                }
-                if (D[j+i*(DSIZE + 2 * RADIUS)] != B[j+i*(DSIZE + 2 * RADIUS)]) {
-                    printf("Mismatch at index [%d,%d] for matrix D, was: %d, should be: %d\n", i,j, D[j+i*(DSIZE + 2 * RADIUS)], B[j+i*(DSIZE + 2 * RADIUS)]);
-                    return -1;
-                }
-            }
-        }
+    if(not check_matrix_stencil(A,C,DSIZE + 2 * RADIUS)){
+        printf("Stencil A failed\n");
+        exit(1);
+    }
+    else{
+        printf("Stencil A Successful\n");
     }
 
-
-
-
+    if(not check_matrix_stencil(B,D,DSIZE + 2 * RADIUS)){
+        printf("Stencil B failed\n");
+        exit(1);
+    }
+    else{
+        printf("Stencil B Successful\n");
+    }
 }
