@@ -37,7 +37,7 @@
 - In comparison to the initial cuda implementation, this is significantly faster, with the total run time being around 2 seconds, compared to the initial 5 seconds.
   This is a 60% improvement in performance. Not only this, but we spend about 0.7 seconds in cuda API calls in this method compared to ~0.4 seconds in the initial implemntation, which is slower, but we gain a big speed up elsewhere.
 
-  # Making use of Alpaka
+# Making use of Alpaka
   - Switching from the other versions to Alpaka was not a ton of work, but did require very subtle changes.
     - The first thing that needed to be figured out was how to actually get a very simple example to compile while including an alpaka header library,
       Thankfully, Andrea left his alpaka (and boost library) on the cluster ready to go, so I was just able to include it in my Makefile when compiling.
